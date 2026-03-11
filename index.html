@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -425,9 +424,28 @@
                 localStorage.setItem('pictorialStaff', JSON.stringify(staffMembers));
             }
 
-            function loadStaff() {
-                staffMembers = JSON.parse(localStorage.getItem('pictorialStaff')) || [];
-                renderStaffList();
+            async function loadStaff() {
+                const savedStaff = JSON.parse(localStorage.getItem('pictorialStaff'));
+                
+                if (savedStaff && savedStaff.length > 0) {
+                    staffMembers = savedStaff;
+                    renderStaffList();
+                } else {
+                    try {
+                        const response = await fetch('default-staff.json');
+                        if (response.ok) {
+                            const defaultData = await response.json();
+                            staffMembers = defaultData;
+                            saveStaff(); // Save it to local storage
+                            renderStaffList();
+                        } else {
+                            renderStaffList();
+                        }
+                    } catch (error) {
+                        console.error('Could not load default staff file:', error);
+                        renderStaffList();
+                    }
+                }
             }
 
             function saveRotaData() {
@@ -1037,7 +1055,7 @@
             
             importLibraryBtn.addEventListener('click', () => importFileInput.click());
             importFileInput.addEventListener('change', handleImportLibrary);
-            exportLibraryBtn.addEventListener('click', () => handleExportLibrary);
+            exportLibraryBtn.addEventListener('click', handleExportLibrary); // FIXED
 
             serviceUserSelector.addEventListener('change', handleUserChange);
 
