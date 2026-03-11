@@ -57,7 +57,7 @@
             outline: 2px solid theme('colors.blue.500'); /* Kept blue for light-mode rota */
         }
 
-      /* NEW: Print-Ready Styling (A4 Portrait) */
+        /* Print-Ready Styling (A4 Portrait) */
         @media print {
             @page {
                 size: A4 portrait; /* Force A4 Portrait */
@@ -336,13 +336,10 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- NEW: Initialize Touch Polyfill for Mobile/Tablet ---
-            // This translates touch events into standard drag-and-drop events automatically
+            // Initialize Touch Polyfill for Mobile/Tablet
             MobileDragDrop.polyfill({
-                // Requiring a short hold makes it easier to scroll on mobile without accidentally dragging
                 holdToDrag: 250
             });
-            // --------------------------------------------------------
 
             const staffList = document.getElementById('staff-list');
             const addStaffBtn = document.getElementById('add-staff-btn');
@@ -354,16 +351,19 @@
             const clearLibraryBtn = document.getElementById('clear-library-btn');
             const rotaGrid = document.getElementById('rota-grid');
             
+            // New Import/Export buttons
             const importFileInput = document.getElementById('import-file-input');
             const importLibraryBtn = document.getElementById('import-library-btn');
             const exportLibraryBtn = document.getElementById('export-library-btn');
             
+            // New Service User elements
             const serviceUserSelector = document.getElementById('service-user-select');
             const headerMorning = document.getElementById('header-morning');
             const headerAfternoon = document.getElementById('header-afternoon');
             const headerSleepIn = document.getElementById('header-sleepin');
-            const sleepInText = document.getElementById('sleepin-text'); 
+            const sleepInText = document.getElementById('sleepin-text'); // New element for icon
 
+            // New Day elements for translation
             const dayMon = document.getElementById('day-mon');
             const dayTue = document.getElementById('day-tue');
             const dayWed = document.getElementById('day-wed');
@@ -372,7 +372,10 @@
             const daySat = document.getElementById('day-sat');
             const daySun = document.getElementById('day-sun');
 
+            // New Title element
             const rotaTitle = document.getElementById('rota-title');
+
+            // NEW: Week starting date input
             const weekStartingInput = document.getElementById('week-starting-date');
 
             const modal = document.getElementById('confirmation-modal');
@@ -381,12 +384,33 @@
             const modalCancelBtn = document.getElementById('modal-cancel-btn');
             const modalConfirmBtn = document.getElementById('modal-confirm-btn');
 
+            // --- NEW: Context Menu ---
             const contextMenu = document.getElementById('custom-context-menu');
             let currentRightClickedCellId = null;
+            
+            // Define your built-in staff list here
+            const defaultStaff = [
+                {
+                    id: 'staff-builtin-1',
+                    name: 'Jane',
+                    imageUrl: 'https://via.placeholder.com/150/14b8a6/FFFFFF?text=Jane' 
+                },
+                {
+                    id: 'staff-builtin-2',
+                    name: 'John',
+                    imageUrl: 'https://via.placeholder.com/150/f59e0b/FFFFFF?text=John'
+                },
+                {
+                    id: 'staff-builtin-3',
+                    name: 'Sarah',
+                    imageUrl: 'https://via.placeholder.com/150/ec4899/FFFFFF?text=Sarah'
+                }
+            ];
 
             let staffMembers = []; 
             
-            let currentServiceUser = 'Caitlin'; 
+            // Rota data now stores an object for *all* users
+            let currentServiceUser = 'Caitlin'; // Default user
             let allRotaData = {
                 'Caitlin': {},
                 'Karen': {},
@@ -397,12 +421,14 @@
             };
             let modalConfirmCallback = null;
 
+            // --- Modal Functions ---
             function showModal(title, message, onConfirm) {
                 modalTitle.textContent = title;
                 modalMessage.textContent = message;
                 modalConfirmCallback = onConfirm;
                 modal.classList.remove('hidden');
                 
+                // Reset buttons
                 modalConfirmBtn.classList.remove('hidden');
                 modalCancelBtn.textContent = 'Cancel';
             }
@@ -420,16 +446,27 @@
                 hideModal();
             });
 
+            // --- Data Persistence ---
             function saveStaff() {
                 localStorage.setItem('pictorialStaff', JSON.stringify(staffMembers));
             }
 
             function loadStaff() {
-                staffMembers = JSON.parse(localStorage.getItem('pictorialStaff')) || [];
+                const savedStaff = JSON.parse(localStorage.getItem('pictorialStaff'));
+                
+                // If there is saved staff, load it. Otherwise, load the built-in list.
+                if (savedStaff && savedStaff.length > 0) {
+                    staffMembers = savedStaff;
+                } else {
+                    staffMembers = [...defaultStaff];
+                    saveStaff(); // Save the built-in list to storage
+                }
+                
                 renderStaffList();
             }
 
             function saveRotaData() {
+                // Save the entire object for all users
                 localStorage.setItem('pictorialRotaData', JSON.stringify(allRotaData));
             }
 
@@ -444,33 +481,39 @@
                 };
                 
                 const savedData = JSON.parse(localStorage.getItem('pictorialRotaData')) || {};
+                
+                // Merge default users with saved data so new additions are never left out
                 allRotaData = { ...defaultData, ...savedData };
 
+                // Catch and migrate any old 'Louise' data in local storage
                 if (allRotaData['Louise']) {
                     allRotaData['Louisa'] = { ...allRotaData['Louise'], ...allRotaData['Louisa'] };
                     delete allRotaData['Louise'];
-                    saveRotaData(); 
+                    saveRotaData(); // Save the correction immediately
                 }
 
+                // Set default user and render their rota
                 currentServiceUser = 'Caitlin';
                 serviceUserSelector.value = currentServiceUser;
                 updateTranslations(); 
                 renderRotaGrid();
             }
 
+            // --- NEW: Week Date Persistence ---
             function saveWeekDate() {
-                if (weekStartingInput) {
+                if (weekStartingInput) { // Check if element exists
                     localStorage.setItem('pictorialRotaWeek', weekStartingInput.value);
                 }
             }
 
             function loadWeekDate() {
-                if (weekStartingInput) {
+                if (weekStartingInput) { // Check if element exists
                     const savedDate = localStorage.getItem('pictorialRotaWeek') || '';
                     weekStartingInput.value = savedDate;
                 }
             }
 
+            // --- Rendering Functions ---
             function renderStaffList() {
                 staffList.innerHTML = '';
                 staffMembers.forEach(staff => {
@@ -494,12 +537,14 @@
 
             function renderRotaGrid() {
                 rotaCells.forEach(cell => {
-                    cell.innerHTML = ''; 
+                    cell.innerHTML = ''; // Clear previous content
                     const cellId = cell.id;
                     
+                    // Get the entry for the *current* service user
                     const userRota = allRotaData[currentServiceUser] || {};
                     const rotaEntry = userRota[cellId] || {}; 
                     
+                    // --- Render Staff ---
                     if (rotaEntry.staffId) {
                         const staff = staffMembers.find(s => s.id === rotaEntry.staffId);
                         const sessionTime = rotaEntry.time || '';
@@ -516,6 +561,7 @@
                             
                             const rotaItem = cell.querySelector('.rota-item');
 
+                            // Delete button listener
                             rotaItem.querySelector('.delete-item').addEventListener('click', () => {
                                 if (cellId.endsWith('-sleepin')) {
                                     Object.keys(allRotaData).forEach(user => {
@@ -545,6 +591,7 @@
                         }
                     }
 
+                    // --- NEW: Render Activity Icons ---
                     if (rotaEntry.activities) {
                         const iconContainer = document.createElement('div');
                         iconContainer.className = 'absolute bottom-3 right-2 flex flex-row-reverse space-x-1 space-x-reverse'; 
@@ -569,6 +616,7 @@
                 });
             }
 
+            // --- Event Handlers ---
             function handleAddStaff() {
                 const name = staffNameInput.value.trim();
                 const file = staffImageInput.files[0];
@@ -871,8 +919,8 @@
             }
 
             function handleClearStaff() {
-                showModal('Clear Staff Library?', 'Are you sure you want to delete ALL staff? This will also clear ALL user rotas.', () => {
-                    staffMembers = [];
+                showModal('Clear Staff Library?', 'Are you sure you want to reset ALL staff to the default list? This will also clear ALL user rotas.', () => {
+                    staffMembers = [...defaultStaff]; 
                     allRotaData = {
                         'Caitlin': {},
                         'Karen': {},
